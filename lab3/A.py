@@ -36,15 +36,12 @@ class MarbleSolitaire:
         print()
 
     def is_valid_position(self, row, col) -> bool:
-        # Check if a position is within the valid bounds of the game board
         return 0 <= row < 7 and 0 <= col < 7
 
     def is_valid_move(self, curr_state, start_row, start_col, end_row, end_col) -> bool:
-        # Check if a move is valid
         if not (self.is_valid_position(start_row, start_col) and self.is_valid_position(end_row, end_col)):
-            return False  # Invalid positions
+            return False
         
-        # Check if the start and end positions form a valid jump
         if (
             abs(start_row - end_row) == 2 and start_col == end_col and
             curr_state[(start_row + end_row) // 2][start_col] == 1 and
@@ -58,14 +55,13 @@ class MarbleSolitaire:
         return False
 
     def apply_move(self, current_state, start_row, start_col, end_row, end_col):
-        # Apply a valid move and update the board
+        
         if not self.is_valid_move(current_state, start_row, start_col, end_row, end_col):
             print("Invalid move. Please try again.")
             return
         
         curr_state = [list(row) for row in current_state]
         
-        # Make the jump, updating the start, end, and jumped positions
         curr_state[start_row][start_col] = 0
         curr_state[(start_row + end_row) // 2][(start_col + end_col) // 2] = 0
         curr_state[end_row][end_col] = 1
@@ -85,21 +81,21 @@ class MarbleSolitaire:
         return new_states
 
     def man_heuristic(self, state) -> int:
-        # Heuristic function: Sum of manhattan distance to the center for each marble
+        
         center_row, center_col = 7 // 2, 7 // 2
         distance = 0
         for row in range(7):
             for col in range(7):
-                if state[row][col] == 1:  # Marble found
+                if state[row][col] == 1:
                     distance += abs(row - center_row) + abs(col - center_col)
         return distance
     
     def marbles_left_heuristic(self, state) -> int:
-        # Heuristic function: Number of marbles left on the board
+        
         marbles = 0
         for row in range(7):
             for col in range(7):
-                if state[row][col] == 1:  # Marble found
+                if state[row][col] == 1:
                     marbles += 1
         return marbles
     
@@ -116,7 +112,7 @@ class PriorityQueueAgent:
         heapq.heapify(priority_queue)
 
         while priority_queue:
-            # print(states_explored)
+
             path_cost, current_state = heapq.heappop(priority_queue)
 
             if self.problem.is_goal_state([list(state) for state in current_state]):
@@ -135,23 +131,11 @@ class PriorityQueueAgent:
                 new_cost = path_cost + 1
                 if new_state_tuple in self.visited_states:
                     continue
-
-                # Check if the new state is already in the priority queue
-                # found = False
-                # for i, (cost, state) in enumerate(priority_queue):
-                #     if state == new_state_tuple:
-                #         found = True
-                #         if new_cost < cost:
-                #             # Update the priority of the existing state
-                #             priority_queue[i] = (new_cost, new_state_tuple)
-                #             heapq.heapify(priority_queue)
-                #         break
                 
-                # if not found:
                 heapq.heappush(priority_queue, (new_cost, new_state_tuple))
                 states_explored += 1
 
-        return (None, states_explored)  # No solution found
+        return (None, states_explored)
     
 class BestFirstSearchAgent:
     def __init__(self, problem):
@@ -166,7 +150,7 @@ class BestFirstSearchAgent:
         heapq.heapify(priority_queue)
 
         while priority_queue:
-            # print(states_explored)
+            
             _, path_cost, current_state = heapq.heappop(priority_queue)
 
             if self.problem.is_goal_state([list(state) for state in current_state]):
@@ -185,14 +169,13 @@ class BestFirstSearchAgent:
                 new_cost = path_cost + 1
                 if new_state_tuple in self.visited_states:
                     continue
-
-                # Check if the new state is already in the priority queue
+                
                 found = False
                 for i, (heu, cost, state) in enumerate(priority_queue):
                     if state == new_state_tuple:
                         found = True
                         if new_cost < cost:
-                            # Update the priority of the existing state
+                            
                             priority_queue[i] = (heu, new_cost, new_state_tuple)
                             heapq.heapify(priority_queue)
                         break
@@ -201,7 +184,7 @@ class BestFirstSearchAgent:
                     heapq.heappush(priority_queue, (self.problem.man_heuristic(new_state), new_cost, new_state_tuple))
                     states_explored += 1
 
-        return (None, states_explored)  # No solution found
+        return (None, states_explored)
     
 class AStarSearchAgent:
     def __init__(self, problem):
@@ -216,7 +199,7 @@ class AStarSearchAgent:
         heapq.heapify(priority_queue)
 
         while priority_queue:
-            # print(states_explored)
+            
             _, path_cost, current_state = heapq.heappop(priority_queue)
 
             if self.problem.is_goal_state([list(state) for state in current_state]):
@@ -235,15 +218,13 @@ class AStarSearchAgent:
                 new_cost = path_cost + 1
                 if new_state_tuple in self.visited_states:
                     continue
-
-                # Check if the new state is already in the priority queue
+                
                 found = False
                 for i, (__, cost, state) in enumerate(priority_queue):
                     if state == new_state_tuple:
                         found = True
                         if new_cost < cost:
                             heu = self.problem.man_heuristic(new_state)
-                            # Update the priority of the existing state
                             priority_queue[i] = (heu+new_cost, new_cost, new_state_tuple)
                             heapq.heapify(priority_queue)
                         break
@@ -252,7 +233,7 @@ class AStarSearchAgent:
                     heapq.heappush(priority_queue, (self.problem.man_heuristic(new_state), new_cost, new_state_tuple))
                     states_explored += 1
 
-        return (None, states_explored)  # No solution found
+        return (None, states_explored)
 
 marble_solitaire = MarbleSolitaire()
 
@@ -262,7 +243,7 @@ if selected_agent == 1:
     agent = PriorityQueueAgent(marble_solitaire)
 elif selected_agent == 2:
     agent = BestFirstSearchAgent(marble_solitaire)
-else:
+elif selected_agent == 3:
     agent = AStarSearchAgent(marble_solitaire)
 
 print("Calculating...")
