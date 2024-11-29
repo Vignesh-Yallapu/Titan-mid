@@ -1,69 +1,76 @@
 import numpy as np
 
-class GridWorldEnvironment:
-    def __init__(self, grid_size, terminal_rewards, step_reward, discount_factor=0.9):
-        self.grid_size = grid_size
-        self.terminal_rewards = terminal_rewards
-        self.step_reward = step_reward
-        self.gamma = discount_factor
-        self.value_grid = np.zeros(grid_size)
-        self.actions = ['up', 'down', 'left', 'right']
+rows, cols = 4, 3
+terminal_states = {(0, 2): 1, (1, 2): -1}
+ACTIONS = ["up", "down", "left", "right"]
+DISCOUNT = 0.9
 
-    def is_terminal_state(self, position):
-        return position in self.terminal_rewards
+ACTION_PROBS = {
+    "up": (0.8, "left", "right"),
+    "down": (0.8, "right", "left"),
+    "left": (0.8, "down", "up"),
+    "right": (0.8, "up", "down"),
+}
 
-    def reward(self, position):
-        return self.terminal_rewards.get(position, self.step_reward)
+def get_reward(state, r_s):
+    return terminal_states.get(state, r_s)
 
-    def get_next_position(self, position, action):
-        row, col = position
-        if action == 'up':
-            return max(row - 1, 0), col
-        elif action == 'down':
-            return min(row + 1, self.grid_size[0] - 1), col
-        elif action == 'left':
-            return row, max(col - 1, 0)
-        elif action == 'right':
-            return row, min(col + 1, self.grid_size[1] - 1)
+def next_state(state, action):
+    row, col = state
+    if action == "up" and row > 0:
+        row -= 1
+    elif action == "down" and row < rows - 1:
+        row += 1
+    elif action == "left" and col > 0:
+        col -= 1
+    elif action == "right" and col < cols - 1:
+        col += 1
+    return (row, col)
 
-    def value_iteration(self, tolerance=1e-6):
-        while True:
-            delta = 0
-            new_value_grid = np.copy(self.value_grid)
+def value_iteration(r_s, threshold=1e-6):
+    values = np.zeros((rows, cols))
+    policy = np.empty((rows, cols), dtype=object)
 
-            for row in range(self.grid_size[0]):
-                for col in range(self.grid_size[1]):
-                    position = (row, col)
+    while True:
+        delta = 0
+        new_values = values.copy()
 
-                    if self.is_terminal_state(position):
-                        continue
+        for row in range(rows):
+            for col in range(cols):
+                state = (row, col)
 
-                    action_values = []
-                    for action in self.actions:
-                        next_position = self.get_next_position(position, action)
-                        intended_value = 0.8 * self.value_grid[next_position]
-                        unintended_left = self.get_next_position(position, 'left')
-                        unintended_right = self.get_next_position(position, 'right')
-                        unintended_value = 0.1 * (self.value_grid[unintended_left] + self.value_grid[unintended_right])
-                        total_value = intended_value + unintended_value
-                        action_values.append(total_value)
+                if state in terminal_states:
+                    new_values[state] = get_reward(state, r_s)
+                    continue
 
-                    best_action_value = max(action_values)
-                    new_value_grid[position] = self.reward(position) + self.gamma * best_action_value
-                    delta = max(delta, abs(new_value_grid[position] - self.value_grid[position]))
+                action_values = []
+                for action in ACTIONS:
+                    intended_next = next_state(state, action)
+                    intended_value = 0.8 * values[intended_next]
 
-            self.value_grid = new_value_grid
-            if delta < tolerance:
-                break
+                    unintended_next1 = next_state(state, ACTION_PROBS[action][1])
+                    unintended_next2 = next_state(state, ACTION_PROBS[action][2])
+                    unintended_value = 0.1 * (values[unintended_next1] + values[unintended_next2])
 
-        return self.value_grid
+                    action_value = get_reward(state, r_s) + DISCOUNT * (intended_value + unintended_value)
+                    action_values.append(action_value)
 
+                best_action_value = max(action_values)
+                best_action = ACTIONS[action_values.index(best_action_value)]
+                new_values[state] = best_action_value
+                policy[state] = best_action
 
-grid_size = (4, 3)
-terminal_rewards = {(0, 2): 1, (1, 2): -1}
-reward_settings = [-2, 0.1, 0.02, 1]
+                delta = max(delta, abs(new_values[state] - values[state]))
 
-for reward in reward_settings:
-    environment = GridWorldEnvironment(grid_size, terminal_rewards, reward)
-    value_function = environment.value_iteration()
-    print(f"Optimal Value Function for reward = {reward}:\n{value_function}\n")
+        values = new_values
+        if delta < threshold:
+            break
+
+    return values, policy
+
+rewards = [-2, 0.1, 0.02, 1.0]
+for r_s in rewards:
+    print(f"Running value iteration for r(s) = {r_s}...")
+    values, policy = value_iteration(r_s)
+    print(f"Optimal Value Function for r(s) = {r_s}:\n{values}")
+    print(f"Optimal Policy for r(s) = {r_s}:\n{policy}\n")
